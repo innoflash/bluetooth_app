@@ -1,6 +1,7 @@
 package net.faithgen.bluetooth.utils;
 
 import android.content.Context;
+import android.widget.Toast;
 
 import com.kaopiz.kprogresshud.KProgressHUD;
 
@@ -23,5 +24,9 @@ public class Progress {
 
     public static void dismissProgress() {
         getProgressHUD().dismiss();
+    }
+
+    public static void showToast(Context context,String msg){
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
     }
 }
