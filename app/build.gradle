@@ -28,4 +28,6 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
     implementation 'com.github.innoflash:iOSViews:6b8527d4b6'
     implementation 'com.karumi:dexter:6.0.0'
+    implementation 'com.kaopiz:kprogresshud:1.2.0' //iOS loading lib
+    implementation 'com.gdacciaro:iosdialog:1.0.3' //iOS like dialogs
 }
