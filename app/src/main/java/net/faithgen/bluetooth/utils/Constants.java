@@ -13,4 +13,8 @@ public class Constants {
     public static final String FAILED_BT_SWITCH_ON = "Failed to switch on the bluetooth!";
     public static final String SCANNING_DEVICES = "Scanning devices...";
     public static final String SCAN_COMPLETE = "Scan complete!";
+    public static final String LOCATION_REQUIRED = "We can not scan any devices without you location permission on, do you want to allow location permission now?";
+    public static final String CANT_SCAN = "Cannot scan for devices without location permission in place!";
+    public static final String NO_DEVICES_FOUND = "No devices found!";
+    public static final String SCAN_FAILED = "Failed to scan for devices!";
 }
