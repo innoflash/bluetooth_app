@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import net.faithgen.bluetooth.R;
 import net.faithgen.bluetooth.holders.DeviceViewHolder;
+import net.faithgen.bluetooth.utils.Constants;
 
 import java.util.List;
 
@@ -32,7 +33,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DeviceViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull DeviceViewHolder holder, int position) {
-        holder.getDeviceHolder().setHeader(bluetoothDevices.get(position).getName());
+        holder.getDeviceHolder().setHeader(bluetoothDevices.get(position).getName() != null ? bluetoothDevices.get(position).getName(): Constants.UNKNOWN_DEVICE);
         holder.getDeviceHolder().setContent(bluetoothDevices.get(position).getAddress());
     }
 

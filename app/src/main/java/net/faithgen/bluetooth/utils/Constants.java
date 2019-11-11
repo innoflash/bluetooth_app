@@ -17,4 +17,5 @@ public class Constants {
     public static final String CANT_SCAN = "Cannot scan for devices without location permission in place!";
     public static final String NO_DEVICES_FOUND = "No devices found!";
     public static final String SCAN_FAILED = "Failed to scan for devices!";
+    public static final String UNKNOWN_DEVICE = "Unknown device";
 }

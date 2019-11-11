@@ -93,7 +93,7 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
             public void onScanResult(int callbackType, ScanResult result) {
                 super.onScanResult(callbackType, result);
                 runOnUiThread(() -> {
-                    bluetoothDevices.add(result.getDevice());
+                    bluetoothDevices = Utils.getUniqueDevices(bluetoothDevices, result.getDevice());
                     if (devicesAdapter == null || devicesAdapter.getItemCount() == 0) {
                         devicesAdapter = new DevicesAdapter(MainActivity.this, bluetoothDevices);
                         devicesView.setAdapter(devicesAdapter);
@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
-                Dialogs.showOkDialog(MainActivity.this, Constants.SCAN_FAILED, false);
+           //     Dialogs.showOkDialog(MainActivity.this, Constants.SCAN_FAILED, false);
             }
         };
     }
