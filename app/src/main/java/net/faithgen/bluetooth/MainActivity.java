@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private ScanCallback initScanCallback() {
         return new ScanCallback() {
+            @RequiresApi(api = Build.VERSION_CODES.N)
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
                 super.onScanResult(callbackType, result);
@@ -99,12 +100,6 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
                         devicesView.setAdapter(devicesAdapter);
                     } else devicesAdapter.notifyDataSetChanged();
                 });
-            }
-
-            @Override
-            public void onScanFailed(int errorCode) {
-                super.onScanFailed(errorCode);
-           //     Dialogs.showOkDialog(MainActivity.this, Constants.SCAN_FAILED, false);
             }
         };
     }
@@ -160,7 +155,12 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
                         bleScanner.stopScan(scanCallback);
                         Progress.showToast(MainActivity.this, Constants.SCAN_COMPLETE);
                         if (bluetoothDevices.size() == 0)
-                            Dialogs.showOkDialog(MainActivity.this, Constants.NO_DEVICES_FOUND, false);
+                            Dialogs.confirmDialog(MainActivity.this, Constants.ATTENTION, Constants.NO_DEVICES_FOUND, new DialogListener() {
+                                @Override
+                                public void onYes() {
+                                    scanLeDevices();
+                                }
+                            });
                     }, SCAN_PERIOD);
                 }
             }

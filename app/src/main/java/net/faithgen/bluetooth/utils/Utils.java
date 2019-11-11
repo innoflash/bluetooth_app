@@ -4,6 +4,9 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
+
+import androidx.annotation.RequiresApi;
 
 import java.util.List;
 
@@ -15,6 +18,7 @@ public class Utils {
         context.startActivity(intent);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     public static List<BluetoothDevice> getUniqueDevices(List<BluetoothDevice> bluetoothDevices, BluetoothDevice bluetoothDevice) {
         boolean itemExists = false;
         if (bluetoothDevices.size() == 0) bluetoothDevices.add(bluetoothDevice);
@@ -23,9 +27,10 @@ public class Utils {
                     bluetoothDevices) {
                 if (device.getAddress().equals(bluetoothDevice.getAddress())) {
                     itemExists = true;
+                    break;
                 }
-                if (!itemExists) bluetoothDevices.add(0, bluetoothDevice);
             }
+            if (!itemExists) bluetoothDevices.add(0, bluetoothDevice);
         }
         return bluetoothDevices;
     }
