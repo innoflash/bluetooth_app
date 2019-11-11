@@ -5,6 +5,8 @@ import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -17,6 +19,8 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
+import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -36,6 +40,8 @@ import net.faithgen.bluetooth.utils.Constants;
 import net.faithgen.bluetooth.utils.Dialogs;
 import net.faithgen.bluetooth.utils.Progress;
 import net.faithgen.bluetooth.utils.Utils;
+import net.innoflash.iosview.recyclerview.RecyclerTouchListener;
+import net.innoflash.iosview.recyclerview.RecyclerViewClickListener;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +49,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-public class MainActivity extends AppCompatActivity implements MultiplePermissionsListener {
+public class MainActivity extends AppCompatActivity implements MultiplePermissionsListener, RecyclerViewClickListener {
 
     private UUID UUID_Service;
     private UUID UUID_characteristic;
@@ -62,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
     private RecyclerView devicesView;
     private DevicesAdapter devicesAdapter;
     private ScanCallback scanCallback;
+    private BluetoothGattCallback bluetoothGattCallback;
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
@@ -82,8 +89,44 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
 
         devicesView = findViewById(R.id.devicesView);
         devicesView.setLayoutManager(new LinearLayoutManager(this));
+        devicesView.addOnItemTouchListener(new RecyclerTouchListener(this, devicesView, this));
 
         scanCallback = initScanCallback();
+        bluetoothGattCallback = initGattCallback();
+    }
+
+    private BluetoothGattCallback initGattCallback() {
+        return new BluetoothGattCallback() {
+            @Override
+            public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+                super.onConnectionStateChange(gatt, status, newState);
+                Progress.dismissProgress();
+                gatt.discoverServices();
+                gatt.
+
+                if (newState == BluetoothGatt.STATE_DISCONNECTED)
+                    Dialogs.showOkDialog(MainActivity.this, Constants.FAILED_TO_CONNECT, false);
+                if (newState == BluetoothGatt.STATE_CONNECTED) {
+                    Progress.showToast(MainActivity.this, Constants.DEVICE_CONNECTED);
+                    Progress.showProgress(MainActivity.this, Constants.GETTING_SERVICES);
+                    gatt.discoverServices();
+                    //todo connected device thing
+                } else
+                    Log.d("state", "onConnectionStateChange: " + newState);
+            }
+
+            @Override
+            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+                super.onServicesDiscovered(gatt, status);
+                Progress.dismissProgress();
+                gatt.getServices().get(0).getUuid()
+            }
+
+            @Override
+            public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                super.onCharacteristicRead(gatt, characteristic, status);
+            }
+        };
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -188,5 +231,24 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
     @Override
     public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions, PermissionToken token) {
 
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @Override
+    public void onClick(View view, int position) {
+        if (bleScanner != null) bleScanner.stopScan(scanCallback);
+        Progress.showProgress(this, Constants.CONNECTING);
+        bleGatt = bluetoothDevices.get(position).connectGatt(this, false, bluetoothGattCallback);
+    }
+
+    @Override
+    public void onLongClick(View view, int position) {
+
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (Progress.getProgressHUD().isShowing()) Progress.dismissProgress();
+        else super.onBackPressed();
     }
 }

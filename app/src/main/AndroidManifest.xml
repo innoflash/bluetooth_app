@@ -16,6 +16,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+        <service
+            android:name=".services.BLEService"
+            android:enabled="false"
+            android:exported="false"></service>
+
         <activity
             android:name=".activities.DeviceDetails"
             android:label="@string/title_activity_device_details"

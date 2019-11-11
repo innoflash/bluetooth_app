@@ -33,7 +33,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DeviceViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull DeviceViewHolder holder, int position) {
-        holder.getDeviceHolder().setHeader(bluetoothDevices.get(position).getName() != null ? bluetoothDevices.get(position).getName(): Constants.UNKNOWN_DEVICE);
+        holder.getDeviceHolder().setHeader(bluetoothDevices.get(position).getName() != null ? bluetoothDevices.get(position).getName(): Constants.PERIPHERAL);
         holder.getDeviceHolder().setContent(bluetoothDevices.get(position).getAddress());
     }
 

@@ -18,4 +18,9 @@ public class Constants {
     public static final String NO_DEVICES_FOUND = "No devices found, would you wanna rescan?";
     public static final String SCAN_FAILED = "Failed to scan for devices!";
     public static final String UNKNOWN_DEVICE = "Unknown device";
+    public static final String CONNECTING = "Connecting ...";
+    public static final String PERIPHERAL = "Peripheral";
+    public static final String FAILED_TO_CONNECT = "Failed to connect to the device, please retry connecting!";
+    public static final String DEVICE_CONNECTED = "Device connected";
+    public static final String GETTING_SERVICES = "Fetching services...";
 }
