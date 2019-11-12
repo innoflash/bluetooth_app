@@ -1,5 +1,7 @@
 package net.faithgen.bluetooth.utils;
 
+import android.content.Intent;
+
 public class Constants {
     public static final String PLEASE_WAIT = "Please wait ...";
     public static final String SERVER_RESPONSE = "Connection Response";
@@ -23,4 +25,9 @@ public class Constants {
     public static final String FAILED_TO_CONNECT = "Failed to connect to the device, please retry connecting!";
     public static final String DEVICE_CONNECTED = "Device connected";
     public static final String GETTING_SERVICES = "Fetching services...";
+    public static final String DEVICES_CONNECTED = "devices_connected";
+    public static final String DISCOVERING_SERVICES = "Discovering services...";
+    public static final String DEVICES_DISCONNECTED = "device_disconnected";
+    public static final String WRITABLE_CHARACTERISTIC_FOUND = "writable_characteristic_found";
+    public static final String MESSAGE_SENT = "message_sent";
 }

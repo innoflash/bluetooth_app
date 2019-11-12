@@ -7,18 +7,23 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 
@@ -35,6 +40,8 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 
 import net.faithgen.bluetooth.adapters.DevicesAdapter;
+import net.faithgen.bluetooth.dialogs.ChatDialog;
+import net.faithgen.bluetooth.interfaces.ChatDialogListener;
 import net.faithgen.bluetooth.interfaces.DialogListener;
 import net.faithgen.bluetooth.utils.Constants;
 import net.faithgen.bluetooth.utils.Dialogs;
@@ -43,9 +50,11 @@ import net.faithgen.bluetooth.utils.Utils;
 import net.innoflash.iosview.recyclerview.RecyclerTouchListener;
 import net.innoflash.iosview.recyclerview.RecyclerViewClickListener;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -55,12 +64,16 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
     private UUID UUID_characteristic;
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 2;
+    private static final String serviceUUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
+    private static final String characteristicUUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
     private static final long SCAN_PERIOD = 10000;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothManager bluetoothManager;
     private BluetoothLeScanner bleScanner;
     private BluetoothGatt bleGatt;
+    private BluetoothDevice bluetoothDevice;
     private Intent enableBtIntent;
+    private Intent broadcastIntent;
     private Handler handler;
     private ScanFilter scanFilter;
     private ScanSettings settings;
@@ -69,6 +82,13 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
     private DevicesAdapter devicesAdapter;
     private ScanCallback scanCallback;
     private BluetoothGattCallback bluetoothGattCallback;
+    private BroadcastReceiver connectionReceiver;
+    private IntentFilter connectionFilter;
+    private ChatDialog chatDialog;
+    private BluetoothGattService bluetoothGattService;
+    private BluetoothGattCharacteristic bluetoothGattCharacteristic;
+    private BluetoothGattDescriptor bluetoothGattDescriptor;
+
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
@@ -76,8 +96,11 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-     /*   UUID_Service = UUID.fromString("19fc95c0-c111–11e3–9904–0002a5d5c51b");
-        UUID_characteristic = UUID.fromString("21fac9e0-c111–11e3–9246–0002a5d5c51b");*/
+        connectionFilter = new IntentFilter();
+        connectionFilter.addAction(Constants.DEVICES_CONNECTED);
+        connectionFilter.addAction(Constants.DEVICES_DISCONNECTED);
+        connectionFilter.addAction(Constants.WRITABLE_CHARACTERISTIC_FOUND);
+        connectionFilter.addAction(Constants.MESSAGE_SENT);
 
         bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
@@ -93,7 +116,58 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
 
         scanCallback = initScanCallback();
         bluetoothGattCallback = initGattCallback();
+        connectionReceiver = initConnectionReceiver();
+
+        registerReceiver(connectionReceiver, connectionFilter);
     }
+
+    private BroadcastReceiver initConnectionReceiver() {
+        return new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                switch (Objects.requireNonNull(intent.getAction())) {
+                    case Constants.DEVICES_CONNECTED:
+                        Progress.showToast(MainActivity.this, Constants.DISCOVERING_SERVICES);
+                        break;
+                    case Constants.DEVICES_DISCONNECTED:
+                        Dialogs.showOkDialog(MainActivity.this, Constants.FAILED_TO_CONNECT, false);
+                        bleGatt.disconnect();
+                        break;
+                    case Constants.WRITABLE_CHARACTERISTIC_FOUND:
+                        chatDialog = new ChatDialog();
+                        chatDialog.setChatDialogListener(new ChatDialogListener() {
+                            @Override
+                            public void onOpened() {
+
+                            }
+
+                            @Override
+                            public void onClose() {
+                                if (bleGatt != null)
+                                    bleGatt.disconnect();
+                            }
+
+                            @Override
+                            public void onMessageSent(String message) {
+                                byte[] strBytes = message.getBytes();
+                                byte[] bytes = bluetoothGattCharacteristic.getValue();
+                                bluetoothGattCharacteristic.setValue(strBytes);
+                                bleGatt.writeCharacteristic(bluetoothGattCharacteristic);
+                            }
+                        });
+                        chatDialog.show(MainActivity.this.getSupportFragmentManager(), ChatDialog.DIALOG_TAG);
+                        break;
+                    case Constants.MESSAGE_SENT:
+                        bleGatt.setCharacteristicNotification(bluetoothGattCharacteristic, true);
+                        bluetoothGattDescriptor = bluetoothGattCharacteristic.getDescriptors().get(0);
+                        bluetoothGattDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                        bleGatt.writeDescriptor(bluetoothGattDescriptor);
+                        break;
+                }
+            }
+        };
+    }
+
 
     private BluetoothGattCallback initGattCallback() {
         return new BluetoothGattCallback() {
@@ -101,16 +175,14 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
             public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
                 super.onConnectionStateChange(gatt, status, newState);
                 Progress.dismissProgress();
-                gatt.discoverServices();
-                gatt.
-
-                if (newState == BluetoothGatt.STATE_DISCONNECTED)
-                    Dialogs.showOkDialog(MainActivity.this, Constants.FAILED_TO_CONNECT, false);
                 if (newState == BluetoothGatt.STATE_CONNECTED) {
-                    Progress.showToast(MainActivity.this, Constants.DEVICE_CONNECTED);
-                    Progress.showProgress(MainActivity.this, Constants.GETTING_SERVICES);
+                    broadcastIntent = new Intent(Constants.DEVICES_CONNECTED);
+                    sendBroadcast(broadcastIntent);
                     gatt.discoverServices();
-                    //todo connected device thing
+                    Log.d("Tag", "onConnectionStateChange: device connected");
+                } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
+                    broadcastIntent = new Intent(Constants.DEVICES_DISCONNECTED);
+                    sendBroadcast(broadcastIntent);
                 } else
                     Log.d("state", "onConnectionStateChange: " + newState);
             }
@@ -119,12 +191,28 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
             public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                 super.onServicesDiscovered(gatt, status);
                 Progress.dismissProgress();
-                gatt.getServices().get(0).getUuid()
+                bluetoothGattService = gatt.getService(UUID.fromString(serviceUUID));
+                if (bluetoothGattService != null) {
+                    bluetoothGattCharacteristic = bluetoothGattService.getCharacteristic(UUID.fromString(characteristicUUID));
+                    if (bluetoothGattCharacteristic != null) {
+                        bleGatt = gatt;
+                        broadcastIntent = new Intent(Constants.WRITABLE_CHARACTERISTIC_FOUND);
+                        sendBroadcast(broadcastIntent);
+                    } else bleGatt.disconnect();
+                }
             }
 
             @Override
-            public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                super.onCharacteristicRead(gatt, characteristic, status);
+            public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+                super.onCharacteristicChanged(gatt, characteristic);
+                chatDialog.setReceivedMessage(new String(characteristic.getValue(), Charset.defaultCharset()));
+            }
+
+            @Override
+            public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                super.onCharacteristicWrite(gatt, characteristic, status);
+                broadcastIntent = new Intent(Constants.MESSAGE_SENT);
+                sendBroadcast(broadcastIntent);
             }
         };
     }
@@ -149,8 +237,13 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
 
     @Override
     protected void onDestroy() {
+        unregisterReceiver(connectionReceiver);
+        if (bleGatt != null) {
+            bleGatt.close();
+            bleGatt = null;
+        }
         super.onDestroy();
-        //  if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) bluetoothAdapter.disable();
+//  if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) bluetoothAdapter.disable();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -193,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements MultiplePermissio
                             .build();
                     bleScanner.startScan(Arrays.asList(scanFilter), settings, scanCallback);
 
-                    if (handler == null) handler = new Handler();
+                    if (handler == null) handler = new Handler(Looper.getMainLooper());
                     handler.postDelayed(() -> {
                         bleScanner.stopScan(scanCallback);
                         Progress.showToast(MainActivity.this, Constants.SCAN_COMPLETE);
